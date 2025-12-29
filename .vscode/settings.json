@@ -1,0 +1,24 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "d:\\_study\\esp_environment\\Espressif\\frameworks\\esp-idf-v5.4.3",
+  "idf.pythonInstallPath": "D:\\_study\\esp_environment\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.openOcdConfigs": [
+    "board/esp32-wrover-kit-3.3v.cfg"
+  ],
+  "idf.portWin": "COM14",
+  "idf.toolsPathWin": "D:\\_study\\esp_environment\\Espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32"
+  },
+  "clangd.path": "d:\\_study\\esp_environment\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=d:\\_study\\projects\\IDFProjects\\IOTProtocol\\build"
+  ],
+  "idf.flashType": "UART",
+  "files.associations": {
+    "time.h": "c",
+    "websocket_client.h": "c"
+  }
+}
