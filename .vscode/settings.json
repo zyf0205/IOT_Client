@@ -10,11 +10,11 @@
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32"
   },
-  "clangd.path": "d:\\_study\\esp_environment\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
+  "clangd.path": "D:\\_study\\esp_environment\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=d:\\_study\\projects\\IDFProjects\\IOTProtocol\\build"
+    "--compile-commands-dir=d:\\_study\\projects\\IOTProtocol\\IOT_ESP_Client\\build"
   ],
   "idf.flashType": "UART",
   "files.associations": {

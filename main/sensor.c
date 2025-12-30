@@ -8,32 +8,38 @@
 #include "esp_random.h"
 #include "esp_log.h"
 #include <string.h>
+#include "dht.h"
+
+#define DHT_SENSOR_GPIO GPIO_NUM_4
 
 static const char *TAG = "SENSOR";
 
-// 任务：模拟温湿度上报
+// 温湿度上报
 static void sensor_task(void *pvParameters)
 {
-  uint32_t temp = 25; // 25摄氏度
-  uint32_t hum = 60;  // 60%
-
+  float temperature = 0;
+  float humidity = 0;
   while (1)
   {
-    // 等待3秒
     vTaskDelay(pdMS_TO_TICKS(3000));
+    esp_err_t res = dht_read_float_data(DHT_TYPE_DHT11, DHT_SENSOR_GPIO, &humidity, &temperature);
+    if (res == ESP_OK)
+    {
+      ESP_LOGI(TAG, "湿度: %.0f%%, 温度: %.0f°C", humidity, temperature);
+    }
+    else
+    {
+      ESP_LOGE(TAG, "读取传感器失败: %s", esp_err_to_name(res));
+    }
 
     if (ws_is_connected())
     {
-      // 模拟数据波动
-      temp = 20 + (esp_random() % 10);
-      hum = 40 + (esp_random() % 30);
-
       // 构造 Payload: Temp(4) + Hum(4) + Time(8) = 16 Bytes
       uint8_t payload[16];
       memset(payload, 0, 16);
 
-      write_u32_le(&payload[0], temp);
-      write_u32_le(&payload[4], hum);
+      write_u32_le(&payload[0], temperature);
+      write_u32_le(&payload[4], humidity);
 
       uint64_t now_ms = net_get_time_ms();
       if (now_ms == 0)
