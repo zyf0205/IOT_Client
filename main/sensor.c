@@ -9,12 +9,14 @@
 #include "esp_log.h"
 #include <string.h>
 #include "dht.h"
+#include "display.h"
+
 // [新增] ADC 驱动
 #include "esp_adc/adc_oneshot.h"
 
 #define DHT_SENSOR_GPIO GPIO_NUM_4
 // [新增] 光敏传感器 GPIO (GPIO 34 对应 ADC1_CHANNEL_6)
-#define LIGHT_SENSOR_ADC_CHANNEL ADC_CHANNEL_6 
+#define LIGHT_SENSOR_ADC_CHANNEL ADC_CHANNEL_6
 
 static const char *TAG = "SENSOR";
 
@@ -45,12 +47,16 @@ static void sensor_task(void *pvParameters)
 
     // 1. 读取温湿度
     esp_err_t res = dht_read_float_data(DHT_TYPE_DHT11, DHT_SENSOR_GPIO, &humidity, &temperature);
-    
+
     // 2. [新增] 读取光照 (ADC)
     ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, LIGHT_SENSOR_ADC_CHANNEL, &light_raw));
 
     if (res == ESP_OK)
     {
+      sys_data.temperature = temperature;
+      sys_data.humidity = humidity;
+      sys_data.lux = light_raw;
+
       // 打印包含光照数据
       ESP_LOGI(TAG, "湿度: %.1f%%, 温度: %.1f°C, 光照: %d", humidity, temperature, light_raw);
     }
@@ -77,7 +83,7 @@ static void sensor_task(void *pvParameters)
       {
         ESP_LOGW(TAG, "Time not synced yet!");
       }
-      
+
       // [修改] 时间戳偏移量向后移动 4 字节 (从 index 12 开始)
       write_u32_le(&payload[12], (uint32_t)(now_ms & 0xFFFFFFFF));
       write_u32_le(&payload[16], (uint32_t)(now_ms >> 32));
@@ -86,7 +92,7 @@ static void sensor_task(void *pvParameters)
       ws_send_packet(CMD_REPORT, payload, 20);
     }
   }
-  
+
   // 任务清理 (虽然通常不会执行到这里)
   adc_oneshot_del_unit(adc1_handle);
   vTaskDelete(NULL);

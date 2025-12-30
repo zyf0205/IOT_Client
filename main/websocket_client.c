@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include "display.h" // [新增] 引入显示模块头文件
 
 #define LED_GPIO GPIO_NUM_2 /*ledGPIO*/
 
@@ -22,12 +23,14 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
   {
   case WEBSOCKET_EVENT_CONNECTED:
     ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
+    sys_data.is_connected = true; // [新增] 更新连接状态
     // 连接成功后发送一个心跳包
     ws_send_packet(CMD_HEARTBEAT, NULL, 0);
     break;
 
   case WEBSOCKET_EVENT_DISCONNECTED:
     ESP_LOGW(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
+    sys_data.is_connected = false; // [新增] 更新连接状态
     break;
 
   case WEBSOCKET_EVENT_DATA:
@@ -76,6 +79,8 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         uint8_t status = recv[11];
         ESP_LOGI(TAG, "Received Control: LED %s", status ? "ON" : "OFF");
         gpio_set_level(LED_GPIO, status ? 1 : 0);
+        
+        sys_data.led_status = (status != 0); // [新增] 更新 LED 状态到显示数据
       }
     }
     break;

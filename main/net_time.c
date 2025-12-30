@@ -1,25 +1,25 @@
 #include <time.h>
 #include <sys/time.h>
-#include "esp_sntp.h"
+#include "esp_sntp.h" // 确保包含这个头文件
 #include "esp_log.h"
-#include "net_time.h"
 
 static const char *TAG = "NTP_TIME";
 
 void net_time_init(void)
 {
   ESP_LOGI(TAG, "Initializing SNTP");
+  
+  // 修改前: sntp_setoperatingmode(SNTP_OPMODE_POLL);
+  esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
 
-  // 设置时区为中国标准时间 (UTC+8)
-  // 虽然时间戳通常用UTC，但设置时区有助于日志打印本地时间
-  setenv("TZ", "CST-8", 1);
-  tzset();
+  // 修改前: sntp_setservername(0, "ntp.aliyun.com");
+  esp_sntp_setservername(0, "ntp.aliyun.com");
 
-  sntp_setoperatingmode(SNTP_OPMODE_POLL);
-  // 使用阿里云NTP服务器，速度更快
-  sntp_setservername(0, "ntp.aliyun.com");
-  sntp_setservername(1, "pool.ntp.org");
-  sntp_init();
+  // 修改前: sntp_setservername(1, "pool.ntp.org");
+  esp_sntp_setservername(1, "pool.ntp.org");
+
+  // 修改前: sntp_init();
+  esp_sntp_init();
 }
 
 uint64_t net_get_time_ms(void)

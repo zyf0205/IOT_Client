@@ -5,6 +5,7 @@
 #include "wifi_mgr.h"
 #include "websocket_client.h"
 #include "sensor.h"
+#include "display.h"
 
 static const char *TAG = "IOT_APP";
 
@@ -19,17 +20,16 @@ void app_main(void)
   }
   ESP_ERROR_CHECK(ret);
 
-  // 2. 初始化并连接 WiFi
+  // 启动传感器上报任务
+  sensor_task_start();
+
+  display_task_start();
+
+  // 初始化并连接 WiFi
   ESP_LOGI(TAG, "Initializing WiFi...");
   ESP_ERROR_CHECK(wifi_mgr_init());
 
-  // 3. 初始化 WebSocket 客户端
+  // 初始化 WebSocket 客户端
   ESP_LOGI(TAG, "Initializing WebSocket client...");
   ESP_ERROR_CHECK(ws_client_init());
-
-  // 4. 启动传感器上报任务
-  ESP_LOGI(TAG, "Starting sensor task...");
-  ESP_ERROR_CHECK(sensor_task_start());
-
-  ESP_LOGI(TAG, "IoT system initialized successfully!");
 }
