@@ -79,7 +79,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         uint8_t status = recv[11];
         ESP_LOGI(TAG, "Received Control: LED %s", status ? "ON" : "OFF");
         gpio_set_level(LED_GPIO, status ? 1 : 0);
-        
+
         sys_data.led_status = (status != 0); // [新增] 更新 LED 状态到显示数据
       }
     }
@@ -159,6 +159,7 @@ esp_err_t ws_client_init(void)
 
   esp_websocket_client_config_t websocket_cfg = {
       .uri = SERVER_URI,
+      .reconnect_timeout_ms = 2000,
   };
 
   /*初始化websocket客户端*/
