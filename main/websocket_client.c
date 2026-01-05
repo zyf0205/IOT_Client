@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
-#include "display.h" // [新增] 引入显示模块头文件
+#include "display.h"
+#include "sensor.h"
 
 #define LED_GPIO GPIO_NUM_2 /*ledGPIO*/
 
@@ -23,14 +24,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
   {
   case WEBSOCKET_EVENT_CONNECTED:
     ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
-    sys_data.is_connected = true; // [新增] 更新连接状态
-    // 连接成功后发送一个心跳包
-    ws_send_packet(CMD_HEARTBEAT, NULL, 0);
+    sys_data.is_connected = true;
     break;
 
   case WEBSOCKET_EVENT_DISCONNECTED:
     ESP_LOGW(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
-    sys_data.is_connected = false; // [新增] 更新连接状态
+    sys_data.is_connected = false;
     break;
 
   case WEBSOCKET_EVENT_DATA:
@@ -47,22 +46,20 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         break;
       }
 
-      // 验证 CRC（范围：除去最后2字节CRC本身）
-      uint16_t received_crc = recv[data->data_len - 2] | (recv[data->data_len - 1] << 8);
-      uint16_t calculated_crc = calc_crc16(recv, data->data_len - 2);
-
-      if (received_crc != calculated_crc)
-      {
-        ESP_LOGW(TAG, "CRC mismatch! Received: 0x%04X, Calculated: 0x%04X", received_crc, calculated_crc);
-        break;
-      }
-
       // 解析 Header
       uint8_t frame_ver = recv[2];
       uint8_t cmd = recv[3];
       uint8_t seq = recv[4];
       uint32_t dev_id = recv[5] | (recv[6] << 8) | (recv[7] << 16) | (recv[8] << 24);
       uint16_t payload_len = recv[9] | (recv[10] << 8);
+
+      // 长度一致性检查：Header(11) + Payload + CRC(2)
+      size_t expected_len = 11 + payload_len + 2;
+      if (data->data_len != expected_len)
+      {
+        ESP_LOGW(TAG, "Length mismatch: header payload=%u, frame=%zu", payload_len, data->data_len);
+        break;
+      }
 
       // 验证版本
       if (frame_ver != FRAME_VER)
@@ -71,15 +68,36 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         break;
       }
 
+      // 验证 CRC（范围：除去最后2字节CRC本身）
+      uint16_t received_crc = recv[data->data_len - 2] | (recv[data->data_len - 1] << 8);
+      uint16_t calculated_crc = calc_crc16(recv, data->data_len - 2);
+      if (received_crc != calculated_crc)
+      {
+        ESP_LOGW(TAG, "CRC mismatch! Received: 0x%04X, Calculated: 0x%04X", received_crc, calculated_crc);
+        break;
+      }
+
       ESP_LOGI(TAG, "Received: Cmd=0x%02X, Seq=%d, DevID=0x%08" PRIx32 ", PayloadLen=%d", cmd, seq, dev_id, payload_len);
 
-      if (cmd == CMD_CONTROL && data->data_len >= (11 + payload_len + 2))
+      if (cmd == CMD_CONTROL && is_register)
       {
-        // 控制命令 Payload 结构：Switch(1) + [其他数据...]
         uint8_t status = recv[11];
         gpio_set_level(LED_GPIO, status ? 1 : 0);
-
-        sys_data.led_status = (status != 0); // [新增] 更新 LED 状态到显示数据
+        sys_data.led_status = (status != 0);
+      }
+      else if (cmd == CMD_REGISTER_ANSWER)
+      {
+        uint8_t register_answer = recv[11];
+        if (register_answer)
+        {
+          is_register = 1; /*注册成功*/
+          ESP_LOGI("register", "register successful");
+        }
+        else
+        {
+          is_register = 0; /*注册失败*/
+          ESP_LOGI("register", "register failed");
+        }
       }
     }
     break;

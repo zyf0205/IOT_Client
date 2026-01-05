@@ -15,6 +15,8 @@
 #define DHT_SENSOR_GPIO GPIO_NUM_4
 #define LIGHT_SENSOR_ADC_CHANNEL ADC_CHANNEL_6 /*GPIO 34*/
 
+bool is_register = false;
+
 // 温湿度上报
 static void report_task(void *pvParameters)
 {
@@ -42,15 +44,24 @@ static void report_task(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(1000));
     tick++;
 
+    /*注册包*/
+    if (tick % 3 == 0)
+    {
+      if (ws_is_connected() && !is_register)
+      {
+        uint8_t payload[8];
+        uint64_t now_ms = net_get_time_ms();
+        write_u32_le(&payload[0], (uint32_t)(now_ms & 0xFFFFFFFF));
+        write_u32_le(&payload[4], (uint32_t)(now_ms >> 32));
+        ws_send_packet(CMD_REGISTER, payload, sizeof(payload));
+        ESP_LOGI("register", "register send");
+      }
+    }
+
     /*心跳上报*/
     if (tick % 10 == 0)
     {
-      if (!ws_is_connected())
-      {
-        ESP_LOGI("heartbeat", "websocket is not connected");
-        continue;
-      }
-      else
+      if (ws_is_connected() && is_register)
       {
         uint8_t payload[8];
         uint64_t now_ms = net_get_time_ms();
@@ -74,13 +85,9 @@ static void report_task(void *pvParameters)
       sys_data.humidity = humidity;
       sys_data.lux = light_raw;
 
-      if (!ws_is_connected())
+      if (ws_is_connected() && is_register)
       {
-        ESP_LOGI("sensor", "websocket is not connected");
-        continue;
-      }
-      else
-      {
+        /*故障通知*/
         if ((temperature == 0 && humidity == 0) || light_raw == 0)
         {
           uint8_t payload[9];
@@ -91,6 +98,7 @@ static void report_task(void *pvParameters)
           ws_send_packet(CMD_FAULT, payload, sizeof(payload));
           ESP_LOGI("fault", "sensor fault");
         }
+
         // 构造 Payload: Temp(4) + Hum(4) + Light(4) + Time(8) = 20 Bytes
         uint8_t payload[20];
         memset(payload, 0, 20);
