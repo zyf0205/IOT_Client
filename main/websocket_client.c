@@ -77,7 +77,6 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
       {
         // 控制命令 Payload 结构：Switch(1) + [其他数据...]
         uint8_t status = recv[11];
-        ESP_LOGI(TAG, "Received Control: LED %s", status ? "ON" : "OFF");
         gpio_set_level(LED_GPIO, status ? 1 : 0);
 
         sys_data.led_status = (status != 0); // [新增] 更新 LED 状态到显示数据

@@ -47,7 +47,7 @@ static void report_task(void *pvParameters)
     {
       if (!ws_is_connected())
       {
-        ESP_LOGD("heartbeat", "websocket is not connected");
+        ESP_LOGI("heartbeat", "websocket is not connected");
         continue;
       }
       else
@@ -57,7 +57,7 @@ static void report_task(void *pvParameters)
         write_u32_le(&payload[0], (uint32_t)(now_ms & 0xFFFFFFFF));
         write_u32_le(&payload[4], (uint32_t)(now_ms >> 32));
         ws_send_packet(CMD_HEARTBEAT, payload, sizeof(payload));
-        ESP_LOGD("heartbeat", "heartbeat send");
+        ESP_LOGI("heartbeat", "heartbeat send");
       }
     }
 
@@ -65,28 +65,32 @@ static void report_task(void *pvParameters)
     if (tick % 3 == 0)
     {
       /*读取温湿度*/
-      esp_err_t res = dht_read_float_data(DHT_TYPE_DHT11, DHT_SENSOR_GPIO, &humidity, &temperature);
+      dht_read_float_data(DHT_TYPE_DHT11, DHT_SENSOR_GPIO, &humidity, &temperature);
       /*读取光照 (ADC)*/
-      res = adc_oneshot_read(adc1_handle, LIGHT_SENSOR_ADC_CHANNEL, &light_raw);
+      adc_oneshot_read(adc1_handle, LIGHT_SENSOR_ADC_CHANNEL, &light_raw);
 
-      if (res == ESP_OK)
-      {
-        /*更新屏幕数据*/
-        sys_data.temperature = temperature;
-        sys_data.humidity = humidity;
-        sys_data.lux = light_raw;
-      }
-      else
-      {
-        ESP_LOGE("sensor", "读取传感器失败: %s", esp_err_to_name(res));
-      }
+      /*更新屏幕数据*/
+      sys_data.temperature = temperature;
+      sys_data.humidity = humidity;
+      sys_data.lux = light_raw;
+
       if (!ws_is_connected())
       {
-        ESP_LOGD("sensor", "websocket is not connected");
+        ESP_LOGI("sensor", "websocket is not connected");
         continue;
       }
       else
       {
+        if ((temperature == 0 && humidity == 0) || light_raw == 0)
+        {
+          uint8_t payload[9];
+          payload[0] = 0x11; /*传感器故障*/
+          uint64_t now_ms = net_get_time_ms();
+          write_u32_le(&payload[1], (uint32_t)(now_ms & 0xFFFFFFFF));
+          write_u32_le(&payload[5], (uint32_t)(now_ms >> 32));
+          ws_send_packet(CMD_FAULT, payload, sizeof(payload));
+          ESP_LOGI("fault", "sensor fault");
+        }
         // 构造 Payload: Temp(4) + Hum(4) + Light(4) + Time(8) = 20 Bytes
         uint8_t payload[20];
         memset(payload, 0, 20);
@@ -110,6 +114,10 @@ static void report_task(void *pvParameters)
 
         // 发送长度改为 20
         ws_send_packet(CMD_REPORT, payload, 20);
+
+        /*将传感器数值清理，用于判断后续传感器问题*/
+        temperature = 0;
+        humidity = 0;
       }
     }
   }
