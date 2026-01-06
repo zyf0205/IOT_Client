@@ -33,13 +33,13 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     is_register = 0;
     break;
 
-  case WEBSOCKET_EVENT_DATA:
+  case WEBSOCKET_EVENT_DATA: /*收到数据*/
     // 处理接收到的二进制数据
     if (data->op_code == 0x02 && data->data_len >= 13)
     { // Binary Frame, 最少：Header(11) + Data(0) + CRC(2) = 13 Bytes
       uint8_t *recv = (uint8_t *)data->data_ptr;
 
-      // 快速检查帧头（前两字节）- 提前过滤无效数据
+      // 快速检查帧头（前两字节）- 过滤无效数据
       uint16_t frame_head = recv[0] | (recv[1] << 8);
       if (frame_head != FRAME_HEAD)
       {
@@ -120,7 +120,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 /*发送数据*/
 void ws_send_packet(uint8_t cmd, uint8_t *payload, uint16_t payload_len)
 {
-  /*先判断客户端是否连接到服务器*/
+  /*判断客户端是否连接到服务器*/
   if (client == NULL || !esp_websocket_client_is_connected(client))
   {
     return;
@@ -143,14 +143,14 @@ void ws_send_packet(uint8_t cmd, uint8_t *payload, uint16_t payload_len)
 
   /*header*/
   // 0xAA55 Little Endian -> 0x55, 0xAA
-  write_u16_le(&buffer[idx], FRAME_HEAD);
+  write_u16_le(&buffer[idx], FRAME_HEAD); /*小端序写入*/
   idx += 2;
-  buffer[idx++] = FRAME_VER;
-  buffer[idx++] = cmd;
-  buffer[idx++] = seq++;
-  write_u32_le(&buffer[idx], DEVICE_ID);
+  buffer[idx++] = FRAME_VER;             /*版本号*/
+  buffer[idx++] = cmd;                   /*命令字*/
+  buffer[idx++] = seq++;                 /*序列号*/
+  write_u32_le(&buffer[idx], DEVICE_ID); /*小端序写入四字节设备id*/
   idx += 4;
-  write_u16_le(&buffer[idx], payload_len);
+  write_u16_le(&buffer[idx], payload_len); /*负载长度2字节*/
   idx += 2;
 
   /*Payload*/

@@ -10,7 +10,7 @@
 static const char *TAG = "DISPLAY";
 
 // ================= 配置区域 =================
-// 你可以在这里自由选择引脚 (ESP32 硬件I2C支持任意引脚映射)
+// 可以在这里自由选择引脚 (ESP32 硬件I2C支持任意引脚映射)
 #define I2C_MASTER_SCL_IO 22      /*!< SCL 引脚 */
 #define I2C_MASTER_SDA_IO 23      /*!< SDA 引脚 */
 #define I2C_MASTER_NUM 0          /*!< I2C 端口号 */
@@ -45,9 +45,7 @@ static void i2c_bus_init(void)
   ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0));
 }
 
-/**
- * @brief 显示任务
- */
+
 static void display_task(void *arg)
 {
   char str_buf[32];

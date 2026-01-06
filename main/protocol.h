@@ -16,18 +16,18 @@
 #define CMD_FAULT 0x30           /*故障通知*/
 #define CMD_CONTROL 0x80         /*控制*/
 
-// ================= 协议结构 =================
-typedef struct
-{
-  uint16_t frame_head;
-  uint8_t frame_ver;
-  uint8_t cmd;
-  uint8_t seq;
-  uint32_t dev_id;
-  uint16_t payload_len;
-  uint8_t *payload;
-  uint16_t crc;
-} protocol_frame_t;
+// // ================= 协议结构 =================
+// typedef struct
+// {
+//   uint16_t frame_head;
+//   uint8_t frame_ver;
+//   uint8_t cmd;
+//   uint8_t seq;
+//   uint32_t dev_id;
+//   uint16_t payload_len;
+//   uint8_t *payload;
+//   uint16_t crc;
+// } protocol_frame_t;
 
 // ================= 函数声明 =================
 uint16_t calc_crc16(const uint8_t *data, size_t len);
